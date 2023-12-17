@@ -10,6 +10,7 @@ from torch.optim import Optimizer
 from tqdm.auto import tqdm
 from utils import get_device
 from pathlib import Path
+from gym.wrappers import TimeLimit
 
 
 class DQNTrainer:
@@ -30,12 +31,13 @@ class DQNTrainer:
             seed: int = 23,
             time_step_reward: float = 0,
             save_interval: int = 10000,
+            max_episode_steps: int = 500,
             debug: bool = False,
             device: str = None,
             **kwargs
         ):
         self.env_name = env_name
-        self.env = gym.make(env_name)
+        self.env = TimeLimit(gym.make(env_name), max_episode_steps)
         self.state, _ = self.env.reset()
         self.device = get_device(device)
         self.model_params = model_params
@@ -51,7 +53,7 @@ class DQNTrainer:
         self.network_frozen_steps = network_frozen_steps
         self.loss_fn = loss_fn
         self.Optim = Optim
-        self.optimizer = Optim(self.online_model.parameters(), lr=lr)
+        self.optimizer = Optim(self.online_model.parameters(), lr=lr, weight_decay=kwargs.get("weight_decay", 0))
         self.exploration = exploration
         self.Buffer = Buffer
         self.buffer_params = buffer_params
@@ -197,3 +199,20 @@ class DQNTrainer:
         trainer.step = checkpoint["step"]
 
         return trainer
+    
+class DDQNTrainer(DQNTrainer):
+    def _calculate_value_loss(self, batch: torch.Tensor) -> torch.Tensor:
+        states, actions, rewards, next_states, dones = map(lambda x: x.to(self.device), batch)
+        rewards, dones = rewards.squeeze(), dones.squeeze()
+
+        q_values = self.online_model(states)
+        values = q_values.gather(1, actions.long()).squeeze()
+
+        online_actions = q_values.argmax(dim=1)
+        next_values = self.target_model(next_states).gather(1, online_actions.long()).detach()
+
+        expected_values = rewards + self.discount_rate * next_values * (1 - dones)
+
+        loss = self.loss_fn(values, expected_values)
+
+        return loss

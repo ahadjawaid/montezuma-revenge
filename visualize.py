@@ -7,17 +7,17 @@ from gym.wrappers import TimeLimit
 
 
 def visualize_episode(
-        env_name: str, 
         checkpoint_path: str = None, 
-        model=None, 
+        trainer=None, 
         device: str = None
     ):
-    assert checkpoint_path is not None or model is not None, "Either checkpoint_path or model must be provided"
+    assert checkpoint_path is not None or trainer is not None, "Either checkpoint_path or trainer must be provided"
     device = get_device(device)
 
-    env = gym.make(env_name, render_mode="human")
-    if model is None and checkpoint_path:
+    if trainer is None and checkpoint_path:
         trainer = DQNTrainer.load(checkpoint_path)
+    env_name = trainer.env_name
+    env = gym.make(env_name, render_mode="human")
 
     state = torch.from_numpy(env.reset()[0]).float().unsqueeze(0).to(device)
     done = truncated = False

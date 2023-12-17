@@ -30,7 +30,7 @@ pip install "gym[accept-rom-license, atari]"
 ### Running the Code
 
 ```
-python3 training.py
+python3 training --env ALE/Turmoil-v5 --max_steps 1000 --save_dir models --trainer DQN
 ```
 
 ## Testing Agent in Environment
