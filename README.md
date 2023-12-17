@@ -26,3 +26,14 @@ pip install -r requirements.txt
 ```
 pip install "gym[accept-rom-license, atari]"
 ```
+
+### Running the Code
+
+```
+python3 training.py
+```
+
+## Testing Agent in Environment
+```
+python3 test.py
+```
