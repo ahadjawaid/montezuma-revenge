@@ -6,20 +6,19 @@ from buffer import ReplayBuffer
 import torch
 from pathlib import Path
 
-env_name = "ALE/Assault-v5"
-max_steps = 1000000
+env_name = "ALE/Breakout-v5"
+max_steps = 100000
 initial_epsilon = 1.0
-batch_size = 4
+batch_size = 32
 
 params = dict(
     env_name=env_name, 
     Model=DQN,
     model_params=dict(
-        conv_feats=256,
-        hidden_dim = 128,
-        n_layers = 12,
+        conv_feats=512,
+        hidden_dim = 64,
+        n_layers = 4,
         Activation = nn.ReLU,
-        Norm = nn.LayerNorm,
     ),
     exploration=EpsilonGreedyExploration(
         epsilon=initial_epsilon,
@@ -40,7 +39,7 @@ params = dict(
     Optim=torch.optim.RMSprop,
     lr=1e-5,
     time_step_reward=0.0,
-    network_frozen_steps=1000,
+    network_frozen_steps=50,
     seed = 42,
     save_interval = 1000,
     max_steps = max_steps,
