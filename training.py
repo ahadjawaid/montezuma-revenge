@@ -39,7 +39,7 @@ params = dict(
     loss_fn=torch.nn.SmoothL1Loss(beta=1.0),
     Optim=torch.optim.RMSprop,
     lr=1e-5,
-    time_step_reward=-3e-3,
+    time_step_reward=-1.0,
     network_frozen_steps=1000,
     seed = 42,
     max_steps = max_steps,
