@@ -2,29 +2,36 @@ import torch
 import torch.nn as nn
 from typing import Callable
 
+
 class ConvNet(nn.Module):
-    def __init__(self, out_dim):
+    def __init__(self, input_size, out_dim):
         super().__init__()
-        # Convolutional layers
         self.conv_layers = nn.Sequential(
-            nn.Conv2d(3, 16, kernel_size=5, stride=1, padding=2),  # Output: [16, 210, 160]
+            nn.Conv2d(3, 16, kernel_size=5, stride=1, padding=2),  
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),                  # Output: [16, 105, 80]
-            nn.Conv2d(16, 32, kernel_size=5, stride=1, padding=2), # Output: [32, 105, 80]
+            nn.MaxPool2d(kernel_size=2, stride=2),                
+            nn.Conv2d(16, 32, kernel_size=5, stride=1, padding=2), 
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),                  # Output: [32, 52, 40]
-            nn.Conv2d(32, 64, kernel_size=5, stride=1, padding=2), # Output: [64, 52, 40]
+            nn.MaxPool2d(kernel_size=2, stride=2),               
+            nn.Conv2d(32, 64, kernel_size=5, stride=1, padding=2),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2)                   # Output: [64, 26, 20]
+            nn.MaxPool2d(kernel_size=2, stride=2)                
         )
 
-        # Fully connected layers
+        with torch.no_grad():
+            self._to_linear = None
+            self.convolutions_out(input_size)
+
         self.fc_layers = nn.Sequential(
-            nn.Flatten(),                       # Flatten the output for the fully connected layer
-            nn.Linear(64 * 26 * 20, 1024),      # First fully connected layer
+            nn.Flatten(),                      
+            nn.Linear(self._to_linear, 1024),   
             nn.ReLU(),
-            nn.Linear(1024, out_dim)            # Output layer with out_dim features
+            nn.Linear(1024, out_dim)           
         )
+
+    def convolutions_out(self, size):
+        sample_data = torch.zeros(1, 3, *size)
+        self._to_linear = self.conv_layers(sample_data).numel()
 
     def forward(self, x):
         x = x.permute(0, 3, 1, 2)

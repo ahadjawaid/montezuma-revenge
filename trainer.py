@@ -29,17 +29,21 @@ class DQNTrainer:
             network_frozen_steps: int = 1000,
             seed: int = 23,
             time_step_reward: float = 0,
+            save_interval: int = 10000,
             debug: bool = False,
             device: str = None,
             **kwargs
         ):
         self.env_name = env_name
         self.env = gym.make(env_name)
+        self.state, _ = self.env.reset()
         self.device = get_device(device)
         self.model_params = model_params
+        model_params["in_size"] = self.state.shape[:2]
         self.model_args = dict(out_dim=self.env.action_space.n, **model_params)
         self.Model = Model
         self.lr = lr
+        self.save_interval = save_interval
         self.max_steps = max_steps
         self.online_model = Model(**self.model_args).to(self.device)
         self.target_model = Model(**self.model_args).to(self.device)
@@ -114,6 +118,41 @@ class DQNTrainer:
 
             return value_loss.item()
         
+    def fit(self):
+        state = torch.from_numpy(self.state).float()
+
+        progress_bar = tqdm(total=self.max_steps, desc="Training", unit="step")
+        range_steps = range(self.step, self.max_steps)
+        for step in range_steps:
+            self.step = step
+            state, _, _, _, truncated, done = self._generate_experiences(state, step)
+
+            if step % self.network_frozen_steps == 0:
+                self.target_model.load_state_dict(self.online_model.state_dict())
+
+            if done or truncated:
+                state, _ = self.env.reset()
+                state = torch.from_numpy(state).float()
+
+            value_loss = self._fit_one_step()
+            self.loss_history.append(value_loss)
+            
+            progress_bar.update(1)
+            progress_bar.set_postfix({"value_loss": value_loss}, refresh=True)
+
+            if ((step % self.save_interval == 0 or step % (self.max_steps // 10) == 0) and step > 0) or step == self.max_steps - 1:
+                checkpoint_dir = Path("checkpoints")
+                checkpoint_dir.mkdir(exist_ok=True)
+
+                checkpoints = list(checkpoint_dir.glob("*.pt"))
+                if len(checkpoints) > 2:
+                    checkpoints.sort(key=lambda x: x.stat().st_mtime)
+
+                    for checkpoint in checkpoints[:-2]:
+                        checkpoint.unlink()
+
+                self.save(checkpoint_dir / f"{step}.pt")
+        
     def save(self, path: str) -> None:
         checkpoint = {
             "online_model": self.online_model.state_dict(),
@@ -158,40 +197,3 @@ class DQNTrainer:
         trainer.step = checkpoint["step"]
 
         return trainer
-
-    def fit(self):
-        state, info = self.env.reset()
-        state = torch.from_numpy(state).float()
-        self._print_debug_statement(f"Info: {info}")
-
-        progress_bar = tqdm(total=self.max_steps, desc="Training", unit="step")
-        range_steps = range(self.step, self.max_steps)
-        for step in range_steps:
-            self.step = step
-            state, _, _, _, truncated, done = self._generate_experiences(state, step)
-
-            if step % self.network_frozen_steps == 0:
-                self.target_model.load_state_dict(self.online_model.state_dict())
-
-            if done or truncated:
-                state, info = self.env.reset()
-                state = torch.from_numpy(state).float()
-
-            value_loss = self._fit_one_step()
-            self.loss_history.append(value_loss)
-            
-            progress_bar.update(1)
-            progress_bar.set_postfix({"value_loss": value_loss}, refresh=True)
-
-            if ((step % 10000 == 0 or step % (self.max_steps // 10) == 0) and step > 0) or step == self.max_steps - 1:
-                checkpoint_dir = Path("checkpoints")
-                checkpoint_dir.mkdir(exist_ok=True)
-
-                checkpoints = list(checkpoint_dir.glob("*.pt"))
-                if len(checkpoints) > 2:
-                    checkpoints.sort(key=lambda x: x.stat().st_mtime)
-
-                    for checkpoint in checkpoints[:-2]:
-                        checkpoint.unlink()
-
-                self.save(checkpoint_dir / f"{step}.pt")

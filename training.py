@@ -6,7 +6,7 @@ from buffer import ReplayBuffer
 import torch
 from pathlib import Path
 
-env_name = "ALE/MontezumaRevenge-v5"
+env_name = "ALE/Assault-v5"
 max_steps = 1000000
 initial_epsilon = 1.0
 batch_size = 4
@@ -39,11 +39,12 @@ params = dict(
     loss_fn=torch.nn.SmoothL1Loss(beta=1.0),
     Optim=torch.optim.RMSprop,
     lr=1e-5,
-    time_step_reward=-1.0,
+    time_step_reward=0.0,
     network_frozen_steps=1000,
     seed = 42,
+    save_interval = 1000,
     max_steps = max_steps,
-    debug = False
+    debug = False,
 )
 
 trainer = DQNTrainer(**params)

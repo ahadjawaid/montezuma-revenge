@@ -1,11 +1,12 @@
 from modules import FeedForwardNN, ConvNet
 import torch.nn as nn
-from typing import Callable
+from typing import Tuple, Callable
 import torch
 
 class DQN(nn.Module):
     def __init__(
             self, 
+            in_size: Tuple[int, int],
             conv_feats: int,
             hidden_dim: int, 
             out_dim: int, 
@@ -16,7 +17,7 @@ class DQN(nn.Module):
         super().__init__()
 
         self.layers = nn.Sequential(
-            ConvNet(conv_feats),
+            ConvNet(in_size, conv_feats),
             FeedForwardNN(conv_feats, hidden_dim, out_dim, n_layers, Activation, Norm)
         )
 
