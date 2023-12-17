@@ -208,8 +208,9 @@ class DDQNTrainer(DQNTrainer):
         q_values = self.online_model(states)
         values = q_values.gather(1, actions.long()).squeeze()
 
-        online_actions = q_values.argmax(dim=1)
-        next_values = self.target_model(next_states).gather(1, online_actions.long()).detach()
+        online_actions = q_values.argmax(dim=1).unsqueeze(1)
+        target_q_values = self.target_model(next_states)
+        next_values = target_q_values.gather(1, online_actions.long()).squeeze().detach()
 
         expected_values = rewards + self.discount_rate * next_values * (1 - dones)
 

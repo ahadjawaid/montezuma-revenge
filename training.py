@@ -70,7 +70,7 @@ if __name__ == "__main__":
     env_name = args.env
     max_steps = args.max_steps
     save_dir = args.save_dir
-    Trainer = DQNTrainer if args.model == "DQN" else DDQNTrainer if args.model == "DDQN" else None
+    Trainer = DQNTrainer if args.trainer == "DQN" else DDQNTrainer if args.trainer == "DDQN" else None
     assert Trainer is not None, "Invalid trainer"
 
     main(env_name, max_steps, save_dir, Trainer)
